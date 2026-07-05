@@ -152,6 +152,11 @@ export const getQuestionsService = async (filters) => {
             GROUP BY q.question_id
         ) AS filtered_questions
     `;
+  // LIMIT/OFFSET are inlined (not bound params) because mysql2's prepared
+  // statement protocol can throw ER_WRONG_ARGUMENTS ("Incorrect arguments
+  // to mysqld_stmt_execute") when LIMIT ? OFFSET ? are passed as execute()
+  // params on some server/driver combinations. Safe here because both
+  // values are strictly clamped integers computed above, never raw user input.
   const listSql = `
         SELECT 
             q.question_id AS id,
@@ -179,11 +184,11 @@ export const getQuestionsService = async (filters) => {
             u.first_name,
             u.last_name
         ORDER BY ${sortColumn} ${sortOrder}, q.question_id DESC
-        LIMIT ? OFFSET ?
+        LIMIT ${normalizedLimit} OFFSET ${offset}
     `;
   const [countRows, rows] = await Promise.all([
     safeExecute(countSql, params),
-    safeExecute(listSql, [...params, normalizedLimit, offset]),
+    safeExecute(listSql, params),
   ]);
   const totalCount = Number(countRows[0]?.totalCount ?? 0);
   const totalPages =
@@ -376,14 +381,11 @@ export const getSingleQuestionService = async ({
         JOIN users au ON au.user_id = a.user_id
         WHERE a.question_id = ?
         ORDER BY a.created_at DESC
-        LIMIT ?
+        LIMIT ${normalizedAnswerLimit}
     `;
 
   //
-  const answers = await safeExecute(answersSql, [
-    questionId,
-    normalizedAnswerLimit,
-  ]);
+  const answers = await safeExecute(answersSql, [questionId]);
 
   // 4.
   return {

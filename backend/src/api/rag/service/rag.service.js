@@ -562,7 +562,7 @@ export async function listDocumentsForUserService({
     FROM documents
     WHERE user_id = ?
     ORDER BY created_at ${sortOrder}, document_id DESC
-    LIMIT ? OFFSET ?
+    LIMIT ${pageSize} OFFSET ${offset}
   `;
 
   const countSql = `
@@ -573,7 +573,7 @@ export async function listDocumentsForUserService({
 
   const [countRows, rows] = await Promise.all([
     safeExecute(countSql, [userId]),
-    safeExecute(sql, [userId, pageSize, offset]),
+    safeExecute(sql, [userId]),
   ]);
 
   const totalCount = Number(countRows[0]?.totalCount ?? 0);

@@ -126,12 +126,12 @@ export const getAnswersService = async ({
     JOIN users u ON u.user_id = a.user_id
     WHERE a.question_id = ?
     ORDER BY ${sortSql}, a.answer_id DESC
-    LIMIT ? OFFSET ?
+    LIMIT ${pageSize} OFFSET ${offset}
   `;
 
   const [countRows, rows] = await Promise.all([
     safeExecute(countSql, [questionId]),
-    safeExecute(sql, [questionId, pageSize, offset]),
+    safeExecute(sql, [questionId]),
   ]);
 
   const totalCount = Number(countRows[0]?.totalCount ?? 0);
