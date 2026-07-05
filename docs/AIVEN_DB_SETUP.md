@@ -41,6 +41,8 @@ If you prefer split variables, the backend still supports `DB_HOST`, `DB_PORT`, 
 
 If you cannot store the CA certificate inline, set `DB_SSL_CA_PATH` to a file path on disk that contains the cert.
 
+If Render still reports `self-signed certificate in certificate chain`, set `DB_SSL_REJECT_UNAUTHORIZED=false` as a temporary workaround. Use the real Aiven CA certificate when you want full TLS verification.
+
 ## 5. Deploy
 
 Make sure your backend service also has:
