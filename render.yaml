@@ -1,0 +1,58 @@
+services:
+  - type: web
+    name: evangadi-forum-backend
+    env: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeploy: true
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: CORS_ORIGIN
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: DB_HOST
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASS
+        sync: false
+      - key: DB_NAME
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: 1d
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_EMBEDDING_MODEL
+        value: gemini-embedding-001
+      - key: GEMINI_TEXT_MODEL
+        value: gemini-2.5-flash-lite
+      - key: RECOMMEND_THRESHOLD
+        value: 0.75
+      - key: RECOMMEND_K
+        value: 5
+      - key: RAG_UPLOAD_DIR
+        value: uploads/rag
+      - key: RAG_MAX_UPLOAD_MB
+        value: 5
+      - key: RAG_CHUNK_CHARS
+        value: 900
+      - key: RAG_CHUNK_OVERLAP
+        value: 120
+      - key: RAG_MAX_CHUNKS_PER_DOC
+        value: 1000
+      - key: RAG_MAX_PDFS_PER_USER
+        value: 20
+      - key: RAG_MIN_TEXT_CHARS
+        value: 50
+      - key: RAG_SEARCH_THRESHOLD
+        value: 0.45
+      - key: RAG_SEARCH_K
+        value: 10
