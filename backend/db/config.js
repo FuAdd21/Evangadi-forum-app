@@ -37,7 +37,7 @@ const buildPoolConfig = () => {
       password: decodeURIComponent(parsedUrl.password),
       database: databaseName,
       port: Number.parseInt(parsedUrl.port, 10) || 3306,
-      ssl: buildSslConfig() || {},
+      ssl: buildSslConfig(),
     };
   }
 
