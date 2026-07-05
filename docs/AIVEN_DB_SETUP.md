@@ -31,15 +31,13 @@ If you prefer the CLI, run the schema file against the Aiven connection using th
 Set these environment variables in Render or your host:
 
 ```bash
-DB_HOST=your-aiven-host
-DB_PORT=3306
-DB_USER=your-aiven-user
-DB_PASS=your-aiven-password
-DB_NAME=your-aiven-database
+DATABASE_URL=mysql://your-aiven-user:your-aiven-password@your-aiven-host:3306/your-aiven-database
 DB_SSL=true
 DB_SSL_REJECT_UNAUTHORIZED=true
 DB_SSL_CA=<paste the Aiven CA certificate here>
 ```
+
+If you prefer split variables, the backend still supports `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASS`, and `DB_NAME`.
 
 If you cannot store the CA certificate inline, set `DB_SSL_CA_PATH` to a file path on disk that contains the cert.
 

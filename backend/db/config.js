@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 dotenv.config();
 import fs from "fs";
 import mysql from "mysql2/promise";
+import { URL } from "url";
 
 const isTruthy = (value) => value === "true" || value === "1";
 
@@ -23,15 +24,35 @@ const buildSslConfig = () => {
   return sslConfig;
 };
 
+const buildPoolConfig = () => {
+  const databaseUrl = process.env.DATABASE_URL;
+
+  if (databaseUrl) {
+    const parsedUrl = new URL(databaseUrl);
+    const databaseName = parsedUrl.pathname.replace(/^\//, "");
+
+    return {
+      host: parsedUrl.hostname,
+      user: decodeURIComponent(parsedUrl.username),
+      password: decodeURIComponent(parsedUrl.password),
+      database: databaseName,
+      port: Number.parseInt(parsedUrl.port, 10) || 3306,
+      ssl: buildSslConfig() || {},
+    };
+  }
+
+  return {
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASS,
+    database: process.env.DB_NAME,
+    port: parseInt(process.env.DB_PORT, 10) || 3306,
+    ssl: buildSslConfig(),
+  };
+};
+
 // Database connection pool
-export const db = mysql.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASS,
-  database: process.env.DB_NAME,
-  port: parseInt(process.env.DB_PORT) || 3306, // Changed from 3307 to 3306
-  ssl: buildSslConfig(),
-});
+export const db = mysql.createPool(buildPoolConfig());
 
 const ensureParams = (params) => {
   if (params === undefined || params === null) {
