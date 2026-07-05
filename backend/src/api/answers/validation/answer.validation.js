@@ -1,59 +1,58 @@
-import { body, param, query } from 'express-validator';
-import { validationErrorHandler } from '../../../middleware/validation-handler.js';
-
+import { body, param, query } from "express-validator";
+import { validationErrorHandler } from "../../../middleware/validation-handler.js";
 
 export const createAnswerValidation = [
-  body('questionId')  
+  body("questionId")
     .notEmpty()
-    .withMessage('Question id is required')
+    .withMessage("Question id is required")
     .isInt({ min: 1 })
-    .withMessage('Question id must be a positive integer')
+    .withMessage("Question id must be a positive integer")
     .toInt(),
-  body('content')
+  body("content")
+    .trim()
     .notEmpty()
-    .withMessage('Answer content is required')
+    .withMessage("Answer content is required")
     .isString()
-    .withMessage('Answer content must be a string')
+    .withMessage("Answer content must be a string")
     .isLength({ min: 20 })
-    .withMessage('Answer content must be at least 20 characters')
-    .trim(),
+    .withMessage("Answer content must be at least 20 characters"),
   validationErrorHandler,
 ];
 
 export const getAnswersValidation = [
-  query('questionId')
+  query("questionId")
     .notEmpty()
-    .withMessage('questionId is required')
+    .withMessage("questionId is required")
     .isInt({ min: 1 })
-    .withMessage('questionId must be a positive integer')
+    .withMessage("questionId must be a positive integer")
     .toInt(),
-  query('sortBy')
+  query("sortBy")
     .optional()
-    .isIn(['newest', 'oldest'])
-    .withMessage('sortBy must be one of newest, oldest'),
+    .isIn(["newest", "oldest"])
+    .withMessage("sortBy must be one of newest, oldest"),
   validationErrorHandler,
 ];
 
 export const answerIdValidation = [
-  param('answerId')
+  param("answerId")
     .isInt({ min: 1 })
-    .withMessage('Answer id must be a positive integer')
+    .withMessage("Answer id must be a positive integer")
     .toInt(),
   validationErrorHandler,
 ];
 
 export const updateAnswerValidation = [
-  param('answerId')
+  param("answerId")
     .isInt({ min: 1 })
-    .withMessage('Answer id must be a positive integer')
+    .withMessage("Answer id must be a positive integer")
     .toInt(),
-  body('content')
+  body("content")
+    .trim()
     .notEmpty()
-    .withMessage('Answer content is required')
+    .withMessage("Answer content is required")
     .isString()
-    .withMessage('Answer content must be a string')
+    .withMessage("Answer content must be a string")
     .isLength({ min: 20 })
-    .withMessage('Answer content must be at least 20 characters')
-    .trim(),
+    .withMessage("Answer content must be at least 20 characters"),
   validationErrorHandler,
 ];

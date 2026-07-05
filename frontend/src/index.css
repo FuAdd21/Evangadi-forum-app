@@ -355,10 +355,6 @@ h6 {
   color: var(--text-placeholder);
 }
 
-/* .dark-mode a {
-  color: var(--primary);
-} */
-
 .dark-mode a:hover {
   color: var(--primary-hover);
 }

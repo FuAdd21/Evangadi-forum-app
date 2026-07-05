@@ -1,6 +1,10 @@
 import crypto from "crypto";
 import { safeExecute } from "../../../../db/config.js";
-import { BadRequestError, NotFoundError } from "../../../utils/errors/index.js";
+import {
+  BadRequestError,
+  ForbiddenError,
+  NotFoundError,
+} from "../../../utils/errors/index.js";
 
 import {
   normalizeQuestionText,
@@ -19,14 +23,6 @@ export const createQuestionService = async (payload) => {
   const { userId, title, content } = payload;
   const trimmedTitle = title?.trim() || "";
   const trimmedContent = content?.trim() || "";
-  const semanticSourceText = normalizeQuestionText({
-    title: `${trimmedTitle} ${trimmedContent}`.trim(),
-  });
-  const vectorConfig = getVectorConfig();
-  const semanticThreshold =
-    typeof vectorConfig?.recommendThreshold === "number"
-      ? vectorConfig.recommendThreshold
-      : 0.75;
 
   const insertQuestionSql = `
         INSERT INTO questions (
@@ -45,8 +41,8 @@ export const createQuestionService = async (payload) => {
     result = await safeExecute(insertQuestionSql, [
       questionHash,
       userId,
-      title,
-      content,
+      trimmedTitle,
+      trimmedContent,
     ]);
   } catch (error) {
     if (error?.code === "ER_NO_REFERENCED_ROW_2") {
@@ -56,17 +52,18 @@ export const createQuestionService = async (payload) => {
   }
 
   const questionId = result.insertId;
-  console.log(questionId);
   const creationResult = {
     id: questionId,
     questionHash,
-    title,
-    content,
+    title: trimmedTitle,
+    content: trimmedContent,
     userId,
   };
 
   // Prepare text for embedding
-  const sourceText = normalizeQuestionText({ title });
+  const sourceText = normalizeQuestionText({
+    title: `${trimmedTitle} ${trimmedContent}`.trim(),
+  });
 
   try {
     const embeddingResult = await generateQuestionEmbedding(sourceText, {
@@ -225,7 +222,7 @@ export const updateQuestionService = async ({
   const existingQuestion = existingQuestionRows[0];
 
   if (Number(existingQuestion.userId) !== Number(userId)) {
-    throw new BadRequestError("You can only edit your own questions");
+    throw new ForbiddenError("You can only edit your own questions");
   }
 
   const updateSql = `
@@ -267,7 +264,7 @@ export const deleteQuestionService = async ({ questionHash, userId }) => {
   const existingQuestion = existingQuestionRows[0];
 
   if (Number(existingQuestion.userId) !== Number(userId)) {
-    throw new BadRequestError("You can only delete your own questions");
+    throw new ForbiddenError("You can only delete your own questions");
   }
 
   const deleteSql = `

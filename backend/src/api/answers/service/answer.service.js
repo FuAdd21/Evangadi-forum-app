@@ -1,14 +1,14 @@
-import { safeExecute } from '../../../../db/config.js';
+import { safeExecute } from "../../../../db/config.js";
 import {
   BadRequestError,
+  ForbiddenError,
   NotFoundError,
-  UnauthenticatedError,
-} from '../../../../../backend/src/utils/errors/index.js';
+} from "../../../utils/errors/index.js";
 
 /**
  * Maps a raw database row to a structured answer object.
  */
-const mapAnswer = row => ({
+const mapAnswer = (row) => ({
   id: row.id,
   questionId: row.questionId,
   content: row.content,
@@ -24,14 +24,14 @@ const mapAnswer = row => ({
 /**
  * Retrieves the owner of a specific question.
  */
-const getQuestionOwner = async questionId => {
+const getQuestionOwner = async (questionId) => {
   const rows = await safeExecute(
-    'SELECT question_id, user_id FROM questions WHERE question_id = ? LIMIT 1',
+    "SELECT question_id, user_id FROM questions WHERE question_id = ? LIMIT 1",
     [questionId],
   );
 
   if (rows.length === 0) {
-    throw new NotFoundError('Question not found');
+    throw new NotFoundError("Question not found");
   }
 
   return rows[0];
@@ -40,14 +40,14 @@ const getQuestionOwner = async questionId => {
 /**
  * Retrieves ownership validation records for an answer block.
  */
-const getAnswerOwner = async answerId => {
+const getAnswerOwner = async (answerId) => {
   const rows = await safeExecute(
-    'SELECT answer_id, user_id FROM answers WHERE answer_id = ? LIMIT 1',
+    "SELECT answer_id, user_id FROM answers WHERE answer_id = ? LIMIT 1",
     [answerId],
   );
 
   if (rows.length === 0) {
-    throw new NotFoundError('Answer not found');
+    throw new NotFoundError("Answer not found");
   }
 
   return rows[0];
@@ -56,17 +56,17 @@ const getAnswerOwner = async answerId => {
 /**
  * Generates the SQL ORDER BY clause for answers based on the sort criteria.
  */
-const getAnswerSortSql = sortBy => {
-  if (sortBy === 'oldest') {
-    return 'a.created_at ASC';
+const getAnswerSortSql = (sortBy) => {
+  if (sortBy === "oldest") {
+    return "a.created_at ASC";
   }
-  return 'a.created_at DESC';
+  return "a.created_at DESC";
 };
 
 /**
  * Retrieves a single answer by its ID.
  */
-export const getSingleAnswerService = async answerId => {
+export const getSingleAnswerService = async (answerId) => {
   const sql = `
     SELECT
       a.answer_id AS id,
@@ -85,7 +85,7 @@ export const getSingleAnswerService = async answerId => {
 
   const rows = await safeExecute(sql, [answerId]);
   if (rows.length === 0) {
-    throw new NotFoundError('Answer not found');
+    throw new NotFoundError("Answer not found");
   }
 
   return mapAnswer(rows[0]);
@@ -95,6 +95,7 @@ export const getSingleAnswerService = async answerId => {
  * Retrieves all answers aligned with a specialized query parameter filter set.
  */
 export const getAnswersService = async ({ questionId, sortBy }) => {
+  await getQuestionOwner(questionId);
   const sortSql = getAnswerSortSql(sortBy);
   const sql = `
     SELECT
@@ -113,7 +114,7 @@ export const getAnswersService = async ({ questionId, sortBy }) => {
   `;
 
   const rows = await safeExecute(sql, [questionId]);
-  return rows.map(row => mapAnswer(row));
+  return rows.map((row) => mapAnswer(row));
 };
 
 /**
@@ -121,13 +122,19 @@ export const getAnswersService = async ({ questionId, sortBy }) => {
  */
 export const createAnswerService = async ({ questionId, userId, content }) => {
   const question = await getQuestionOwner(questionId);
-  if (question.user_id === userId) {
-    throw new BadRequestError('You cannot answer your own question');
+  if (Number(question.user_id) === Number(userId)) {
+    throw new BadRequestError("You cannot answer your own question");
   }
 
+  const trimmedContent = content?.trim() || "";
+
   const insertSql =
-    'INSERT INTO answers (question_id, user_id, content) VALUES (?, ?, ?)';
-  const result = await safeExecute(insertSql, [questionId, userId, content]);
+    "INSERT INTO answers (question_id, user_id, content) VALUES (?, ?, ?)";
+  const result = await safeExecute(insertSql, [
+    questionId,
+    userId,
+    trimmedContent,
+  ]);
 
   return getSingleAnswerService(result.insertId);
 };
@@ -137,15 +144,15 @@ export const createAnswerService = async ({ questionId, userId, content }) => {
  */
 export const updateAnswerService = async ({ answerId, userId, content }) => {
   const answer = await getAnswerOwner(answerId);
-  if (answer.user_id !== userId) {
-    throw new UnauthenticatedError(
-      'You are not authorized to update this answer',
-    );
+  if (Number(answer.user_id) !== Number(userId)) {
+    throw new ForbiddenError("You are not authorized to update this answer");
   }
 
+  const trimmedContent = content?.trim() || "";
+
   await safeExecute(
-    'UPDATE answers SET content = ?, updated_at = CURRENT_TIMESTAMP WHERE answer_id = ?',
-    [content, answerId],
+    "UPDATE answers SET content = ?, updated_at = CURRENT_TIMESTAMP WHERE answer_id = ?",
+    [trimmedContent, answerId],
   );
 
   return getSingleAnswerService(answerId);
@@ -156,13 +163,11 @@ export const updateAnswerService = async ({ answerId, userId, content }) => {
  */
 export const deleteAnswerService = async ({ answerId, userId }) => {
   const answer = await getAnswerOwner(answerId);
-  if (answer.user_id !== userId) {
-    throw new UnauthenticatedError(
-      'You are not authorized to delete this answer',
-    );
+  if (Number(answer.user_id) !== Number(userId)) {
+    throw new ForbiddenError("You are not authorized to delete this answer");
   }
 
-  await safeExecute('DELETE FROM answers WHERE answer_id = ?', [answerId]);
+  await safeExecute("DELETE FROM answers WHERE answer_id = ?", [answerId]);
 
   return { answerId };
 };

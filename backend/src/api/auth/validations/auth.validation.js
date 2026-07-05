@@ -5,6 +5,7 @@ export const registerValidation = [
   body("firstName")
     .notEmpty()
     .withMessage("First name is required")
+    .trim()
     .isString()
     .withMessage("First name must be a string")
     .isLength({ min: 3 })
@@ -12,6 +13,7 @@ export const registerValidation = [
   body("lastName")
     .notEmpty()
     .withMessage("Last name is required")
+    .trim()
     .isString()
     .withMessage("Last name must be a string")
     .isLength({ min: 3 })
@@ -47,6 +49,7 @@ export const updateProfileValidation = [
   body("firstName")
     .notEmpty()
     .withMessage("First name is required")
+    .trim()
     .isString()
     .withMessage("First name must be a string")
     .isLength({ min: 2 })
@@ -54,6 +57,7 @@ export const updateProfileValidation = [
   body("lastName")
     .notEmpty()
     .withMessage("Last name is required")
+    .trim()
     .isString()
     .withMessage("Last name must be a string")
     .isLength({ min: 2 })
@@ -63,9 +67,7 @@ export const updateProfileValidation = [
 ];
 
 export const changePasswordValidation = [
-  body("oldPassword")
-    .notEmpty()
-    .withMessage("Current password is required"),
+  body("oldPassword").notEmpty().withMessage("Current password is required"),
   body("newPassword")
     .notEmpty()
     .withMessage("New password is required")
@@ -78,6 +80,7 @@ export const changePasswordValidation = [
 export const updatePreferencesValidation = [
   body("darkMode")
     .isBoolean()
+    .toBoolean()
     .withMessage("Dark mode must be a boolean value"),
 
   validationErrorHandler,

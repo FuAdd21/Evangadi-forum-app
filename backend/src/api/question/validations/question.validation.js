@@ -3,6 +3,7 @@ import { validationErrorHandler } from "../../../middleware/validation-handler.j
 
 export const createQuestionValidation = [
   body("title")
+    .trim()
     .notEmpty()
     .withMessage("Title is required")
     .isLength({ min: 10 })
@@ -11,6 +12,7 @@ export const createQuestionValidation = [
     .withMessage("Title cannot exceed 255 characters"),
 
   body("content")
+    .trim()
     .notEmpty()
     .withMessage("Content is required")
     .isLength({ min: 10 })
@@ -22,20 +24,20 @@ export const createQuestionValidation = [
 export const generateQuestionDraftCoachValidation = [
   body("title")
     .optional() // <--- Changed from .notEmpty() to match the "optional" spec
+    .trim()
     .isString()
     .withMessage("Question title must be a string")
     .isLength({ min: 5, max: 255 })
-    .withMessage("Question titles must be between 5 and 255 characters")
-    .trim(),
+    .withMessage("Question titles must be between 5 and 255 characters"),
 
   body("content")
+    .trim()
     .notEmpty()
     .withMessage("Question content is required")
     .isString()
     .withMessage("Question content must be a string")
     .isLength({ min: 10 })
-    .withMessage("Question content must be at least 10 characters")
-    .trim(),
+    .withMessage("Question content must be at least 10 characters"),
   validationErrorHandler,
 ];
 export const assessAnswerAgainstQuestionValidation = [
@@ -46,6 +48,7 @@ export const assessAnswerAgainstQuestionValidation = [
     .withMessage("Question hash must be a 16-character lowercase hex string"),
 
   body("answerText")
+    .trim()
     .notEmpty()
     .withMessage("Answer text is required")
     .isString()
@@ -53,8 +56,7 @@ export const assessAnswerAgainstQuestionValidation = [
     .isLength({ min: 20 })
     .withMessage(
       "Answer text must be at least 20 characters for a meaningful fit check",
-    )
-    .trim(),
+    ),
 
   validationErrorHandler,
 ];
@@ -68,22 +70,22 @@ export const updateQuestionValidation = [
     .trim(),
 
   body("title")
+    .trim()
     .notEmpty()
     .withMessage("Title is required")
     .isLength({ min: 5 })
     .withMessage("Title must be at least 5 characters")
     .isLength({ max: 200 })
-    .withMessage("Title cannot exceed 200 characters")
-    .trim(),
+    .withMessage("Title cannot exceed 200 characters"),
 
   body("content")
+    .trim()
     .notEmpty()
     .withMessage("Body is required")
     .isLength({ min: 10 })
     .withMessage("Body must be at least 10 characters")
     .isLength({ max: 5000 })
-    .withMessage("Body cannot exceed 5000 characters")
-    .trim(),
+    .withMessage("Body cannot exceed 5000 characters"),
 
   validationErrorHandler,
 ];
@@ -101,9 +103,9 @@ export const deleteQuestionValidation = [
 export const getQuestionsValidation = [
   query("search")
     .optional()
+    .trim()
     .isString()
-    .withMessage("Search query must be a string")
-    .trim(),
+    .withMessage("Search query must be a string"),
   query("mine")
     .optional()
     .isBoolean()
@@ -134,13 +136,13 @@ export const getSingleQuestionValidation = [
 
 export const searchQuestionsSemanticValidation = [
   query("query")
+    .trim()
     .notEmpty()
     .withMessage("query is required")
     .isString()
     .withMessage("query must be a string")
     .isLength({ min: 5 })
-    .withMessage("query must be at least 5 characters")
-    .trim(),
+    .withMessage("query must be at least 5 characters"),
 
   query("k")
     .optional()

@@ -1,4 +1,4 @@
-import { StatusCodes } from 'http-status-codes';
+import { StatusCodes } from "http-status-codes";
 import {
   registerService,
   loginService,
@@ -7,7 +7,21 @@ import {
   updateUserPreferencesService,
   updateUserProfileService,
   updateProfilePictureService,
-} from '../service/auth.service.js';
+} from "../service/auth.service.js";
+
+const getPublicBaseUrl = (req) => {
+  const configuredBaseUrl = process.env.PUBLIC_BASE_URL?.trim();
+
+  if (configuredBaseUrl) {
+    return configuredBaseUrl.replace(/\/+$/, "");
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("PUBLIC_BASE_URL must be set in production.");
+  }
+
+  return `${req.protocol}://${req.get("host")}`;
+};
 
 /**
  * Handles user registration requests.
@@ -30,7 +44,7 @@ export const registerController = async (req, res, next) => {
 
     res.status(StatusCodes.CREATED).json({
       success: true,
-      message: 'User registered successfully.',
+      message: "User registered successfully.",
       user: newUser,
     });
   } catch (error) {
@@ -54,7 +68,7 @@ export const loginController = async (req, res, next) => {
 
     res.status(StatusCodes.OK).json({
       success: true,
-      message: 'Login successful.',
+      message: "Login successful.",
       user: authResult.user,
       token: authResult.token,
     });
@@ -76,7 +90,11 @@ export const changePasswordController = async (req, res, next) => {
     const userId = req.user.id;
     const { oldPassword, newPassword } = req.body;
 
-    const result = await changePasswordService(userId, oldPassword, newPassword);
+    const result = await changePasswordService(
+      userId,
+      oldPassword,
+      newPassword,
+    );
 
     res.status(StatusCodes.OK).json({
       success: true,
@@ -127,7 +145,7 @@ export const updateProfileController = async (req, res, next) => {
 
     res.status(StatusCodes.OK).json({
       success: true,
-      message: 'Profile updated successfully.',
+      message: "Profile updated successfully.",
       user,
     });
   } catch (error) {
@@ -175,13 +193,16 @@ export const uploadProfilePictureController = async (req, res, next) => {
     if (!req.file) {
       return res.status(StatusCodes.BAD_REQUEST).json({
         success: false,
-        message: 'No file uploaded',
+        message: "No file uploaded",
       });
     }
 
-    const profilePicturePath = `${req.protocol}://${req.get('host')}/uploads/profile-pictures/${req.file.filename}`;
+    const profilePicturePath = `${getPublicBaseUrl(req)}/uploads/profile-pictures/${req.file.filename}`;
 
-    const result = await updateProfilePictureService(userId, profilePicturePath);
+    const result = await updateProfilePictureService(
+      userId,
+      profilePicturePath,
+    );
 
     res.status(StatusCodes.OK).json({
       success: true,

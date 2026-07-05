@@ -1,19 +1,23 @@
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { safeExecute } from '../../../../db/config.js';
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import { safeExecute } from "../../../../db/config.js";
 import {
   BadRequestError,
   UnauthenticatedError,
-} from '../../../utils/errors/index.js';
+  NotFoundError,
+} from "../../../utils/errors/index.js";
 
 const JWT_SECRET = process.env.JWT_SECRET;
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1d';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "1d";
 
 if (!JWT_SECRET) {
-  throw new Error('JWT_SECRET environment variable is required');
+  throw new Error("JWT_SECRET environment variable is required");
 }
 
-const normalizeEmail = email => email.trim().toLowerCase();
+const normalizeEmail = (email) => email.trim().toLowerCase();
+
+const toBoolean = (value) =>
+  value === true || value === 1 || value === "1" || value === "true";
 
 /**
  * Checks if a user exists by email.
@@ -21,9 +25,9 @@ const normalizeEmail = email => email.trim().toLowerCase();
  * @param {string} email - The email to check.
  * @returns {Promise<boolean>} True if the user exists, false otherwise.
  */
-export const checkUserExists = async email => {
+export const checkUserExists = async (email) => {
   const normalizedEmail = normalizeEmail(email);
-  const sql = 'SELECT user_id FROM users WHERE email = ? LIMIT 1';
+  const sql = "SELECT user_id FROM users WHERE email = ? LIMIT 1";
   const rows = await safeExecute(sql, [normalizedEmail]);
   return rows.length > 0;
 };
@@ -47,14 +51,14 @@ export const registerService = async ({
   const normalizedEmail = normalizeEmail(email);
   const userExists = await checkUserExists(normalizedEmail);
   if (userExists) {
-    throw new BadRequestError('User already exists with this email.');
+    throw new BadRequestError("User already exists with this email.");
   }
 
   // every time we call bcrypt.genSalt, it generates a new random salt string.
   const salt = await bcrypt.genSalt(10); // generates a unique random salt each call
   const hashedPassword = await bcrypt.hash(password, salt);
   const sql =
-    'INSERT INTO users (first_name, last_name, email, password_hash) VALUES (?, ?, ?, ?)';
+    "INSERT INTO users (first_name, last_name, email, password_hash) VALUES (?, ?, ?, ?)";
   let result;
   try {
     result = await safeExecute(sql, [
@@ -64,8 +68,8 @@ export const registerService = async ({
       hashedPassword,
     ]);
   } catch (error) {
-    if (error?.code === 'ER_DUP_ENTRY') {
-      throw new BadRequestError('User already exists with this email.');
+    if (error?.code === "ER_DUP_ENTRY") {
+      throw new BadRequestError("User already exists with this email.");
     }
     throw error;
   }
@@ -90,18 +94,18 @@ export const registerService = async ({
 export const loginService = async ({ email, password }) => {
   const normalizedEmail = normalizeEmail(email);
   const sql =
-    'SELECT user_id, first_name, last_name, email, password_hash, profile_picture_path, dark_mode FROM users WHERE email = ? LIMIT 1';
+    "SELECT user_id, first_name, last_name, email, password_hash, profile_picture_path, dark_mode FROM users WHERE email = ? LIMIT 1";
   const rows = await safeExecute(sql, [normalizedEmail]);
 
   if (rows.length === 0) {
-    throw new UnauthenticatedError('Invalid email or password');
+    throw new UnauthenticatedError("Invalid email or password");
   }
 
   const user = rows[0];
   const isMatch = await bcrypt.compare(password, user.password_hash);
 
   if (!isMatch) {
-    throw new UnauthenticatedError('Invalid email or password');
+    throw new UnauthenticatedError("Invalid email or password");
   }
 
   const payload = {
@@ -134,29 +138,32 @@ export const loginService = async ({ email, password }) => {
  * @returns {Promise<Object>} Success message.
  * @throws {UnauthenticatedError} If old password doesn't match.
  */
-export const changePasswordService = async (userId, oldPassword, newPassword) => {
-  const sql =
-    'SELECT password_hash FROM users WHERE user_id = ? LIMIT 1';
+export const changePasswordService = async (
+  userId,
+  oldPassword,
+  newPassword,
+) => {
+  const sql = "SELECT password_hash FROM users WHERE user_id = ? LIMIT 1";
   const rows = await safeExecute(sql, [userId]);
 
   if (rows.length === 0) {
-    throw new UnauthenticatedError('User not found');
+    throw new UnauthenticatedError("User not found");
   }
 
   const user = rows[0];
   const isMatch = await bcrypt.compare(oldPassword, user.password_hash);
 
   if (!isMatch) {
-    throw new UnauthenticatedError('Current password is incorrect');
+    throw new UnauthenticatedError("Current password is incorrect");
   }
 
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-  const updateSql = 'UPDATE users SET password_hash = ? WHERE user_id = ?';
+  const updateSql = "UPDATE users SET password_hash = ? WHERE user_id = ?";
   await safeExecute(updateSql, [hashedPassword, userId]);
 
-  return { success: true, message: 'Password changed successfully' };
+  return { success: true, message: "Password changed successfully" };
 };
 
 /**
@@ -167,11 +174,11 @@ export const changePasswordService = async (userId, oldPassword, newPassword) =>
  */
 export const getUserProfileService = async (userId) => {
   const sql =
-    'SELECT user_id, first_name, last_name, email, profile_picture_path, dark_mode FROM users WHERE user_id = ? LIMIT 1';
+    "SELECT user_id, first_name, last_name, email, profile_picture_path, dark_mode FROM users WHERE user_id = ? LIMIT 1";
   const rows = await safeExecute(sql, [userId]);
 
   if (rows.length === 0) {
-    throw new BadRequestError('User not found');
+    throw new NotFoundError("User not found");
   }
 
   const user = rows[0];
@@ -193,25 +200,27 @@ export const getUserProfileService = async (userId) => {
  * @returns {Promise<Object>} Updated user object.
  */
 export const updateUserPreferencesService = async (userId, darkMode) => {
-  const sql = 'UPDATE users SET dark_mode = ? WHERE user_id = ?';
-  await safeExecute(sql, [darkMode ? 1 : 0, userId]);
+  const darkModeEnabled = toBoolean(darkMode);
+  const sql = "UPDATE users SET dark_mode = ? WHERE user_id = ?";
+  await safeExecute(sql, [darkModeEnabled ? 1 : 0, userId]);
 
   return {
     id: userId,
-    darkMode,
-    message: 'Preferences updated successfully',
+    darkMode: darkModeEnabled,
+    message: "Preferences updated successfully",
   };
 };
 
 export const updateUserProfileService = async (userId, firstName, lastName) => {
-  const sql = 'UPDATE users SET first_name = ?, last_name = ? WHERE user_id = ?';
+  const sql =
+    "UPDATE users SET first_name = ?, last_name = ? WHERE user_id = ?";
   await safeExecute(sql, [firstName, lastName, userId]);
 
   return {
     id: userId,
     firstName,
     lastName,
-    message: 'Profile updated successfully',
+    message: "Profile updated successfully",
   };
 };
 
@@ -222,13 +231,16 @@ export const updateUserProfileService = async (userId, firstName, lastName) => {
  * @param {string} profilePicturePath - The path to the profile picture.
  * @returns {Promise<Object>} Updated user object.
  */
-export const updateProfilePictureService = async (userId, profilePicturePath) => {
-  const sql = 'UPDATE users SET profile_picture_path = ? WHERE user_id = ?';
+export const updateProfilePictureService = async (
+  userId,
+  profilePicturePath,
+) => {
+  const sql = "UPDATE users SET profile_picture_path = ? WHERE user_id = ?";
   await safeExecute(sql, [profilePicturePath, userId]);
 
   return {
     id: userId,
     profilePictureUrl: profilePicturePath,
-    message: 'Profile picture updated successfully',
+    message: "Profile picture updated successfully",
   };
 };
