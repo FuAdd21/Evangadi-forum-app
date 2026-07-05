@@ -24,7 +24,7 @@ const buildSslConfig = () => {
   return sslConfig;
 };
 
-const buildPoolConfig = () => {
+export const buildPoolConfig = () => {
   const databaseUrl = process.env.DATABASE_URL;
 
   if (databaseUrl) {

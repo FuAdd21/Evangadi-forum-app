@@ -6,6 +6,10 @@ export const errorHandler = (err, req, res, next) => {
     err.statusCode >= StatusCodes.BAD_REQUEST &&
     err.statusCode < StatusCodes.INTERNAL_SERVER_ERROR;
 
+      if (!isClientError) {
+    console.error("Unhandled error:", err);
+  }
+
   let customError = {
     statusCode: err.statusCode || StatusCodes.INTERNAL_SERVER_ERROR,
     msg:
