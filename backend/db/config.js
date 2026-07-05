@@ -1,6 +1,27 @@
 import dotenv from "dotenv";
 dotenv.config();
+import fs from "fs";
 import mysql from "mysql2/promise";
+
+const isTruthy = (value) => value === "true" || value === "1";
+
+const buildSslConfig = () => {
+  if (!isTruthy(process.env.DB_SSL)) {
+    return undefined;
+  }
+
+  const sslConfig = {
+    rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== "false",
+  };
+
+  if (process.env.DB_SSL_CA) {
+    sslConfig.ca = process.env.DB_SSL_CA;
+  } else if (process.env.DB_SSL_CA_PATH) {
+    sslConfig.ca = fs.readFileSync(process.env.DB_SSL_CA_PATH, "utf8");
+  }
+
+  return sslConfig;
+};
 
 // Database connection pool
 export const db = mysql.createPool({
@@ -9,6 +30,7 @@ export const db = mysql.createPool({
   password: process.env.DB_PASS,
   database: process.env.DB_NAME,
   port: parseInt(process.env.DB_PORT) || 3306, // Changed from 3307 to 3306
+  ssl: buildSslConfig(),
 });
 
 const ensureParams = (params) => {
