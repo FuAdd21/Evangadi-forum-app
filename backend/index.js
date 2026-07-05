@@ -13,6 +13,8 @@ dotenv.config();
 const app = express();
 const port = Number.parseInt(process.env.PORT, 10) || 3777;
 const isProduction = process.env.NODE_ENV === "production";
+const uploadsRoot =
+  process.env.UPLOADS_ROOT || path.join(process.cwd(), "uploads");
 const corsOrigins = (process.env.CORS_ORIGIN || process.env.FRONTEND_URL || "")
   .split(",")
   .map((origin) => origin.trim())
@@ -139,7 +141,7 @@ app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 
 app.use(
   "/uploads",
-  express.static(path.join(process.cwd(), "uploads"), {
+  express.static(uploadsRoot, {
     dotfiles: "deny",
     index: false,
     fallthrough: false,

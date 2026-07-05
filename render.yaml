@@ -7,11 +7,17 @@ services:
     startCommand: npm start
     autoDeploy: true
     healthCheckPath: /health
+    disks:
+      - name: uploads
+        mountPath: /var/data
+        sizeGB: 1
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 10000
+      - key: UPLOADS_ROOT
+        value: /var/data/uploads
       - key: CORS_ORIGIN
         sync: false
       - key: FRONTEND_URL
@@ -39,7 +45,7 @@ services:
       - key: RECOMMEND_K
         value: 5
       - key: RAG_UPLOAD_DIR
-        value: uploads/rag
+        value: /var/data/uploads/rag
       - key: RAG_MAX_UPLOAD_MB
         value: 5
       - key: RAG_CHUNK_CHARS

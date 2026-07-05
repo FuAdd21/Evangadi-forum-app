@@ -2,11 +2,9 @@ import multer from "multer";
 import path from "path";
 import fs from "fs";
 
-const uploadsDirectory = path.join(
-  process.cwd(),
-  "uploads",
-  "profile-pictures",
-);
+const uploadsRoot =
+  process.env.UPLOADS_ROOT || path.join(process.cwd(), "uploads");
+const uploadsDirectory = path.join(uploadsRoot, "profile-pictures");
 fs.mkdirSync(uploadsDirectory, { recursive: true });
 
 const ALLOWED_IMAGE_MIME_TYPES = new Set([

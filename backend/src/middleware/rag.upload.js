@@ -10,7 +10,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const RAG_UPLOAD_FIELD_NAME = "file";
 export const RAG_MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 
-export const RAG_UPLOADS_ROOT = path.join(__dirname, "../../rag-uploads");
+const uploadsRoot =
+  process.env.UPLOADS_ROOT || path.join(process.cwd(), "uploads");
+export const RAG_UPLOADS_ROOT =
+  process.env.RAG_UPLOAD_DIR || path.join(uploadsRoot, "rag");
 
 const MAX_FILE_SIZE_MB = RAG_MAX_FILE_SIZE_BYTES / (1024 * 1024);
 
