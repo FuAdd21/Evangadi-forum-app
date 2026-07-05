@@ -128,10 +128,30 @@ const buildQuestionFilters = (filters = {}) => {
  * @returns {Promise<object>}
  */
 export const getQuestionsService = async (filters) => {
-  const normalizedLimit = 100; // enforce a maximum limit of 100 records
-  const sortColumn = "q.created_at";
-  const sortOrder = "DESC";
+  const page =
+    Number.isInteger(filters.page) && filters.page > 0 ? filters.page : 1;
+  const limitCandidate = Number.isInteger(filters.limit) ? filters.limit : 10;
+  const normalizedLimit = Math.min(Math.max(limitCandidate, 1), 100);
+  const offset = (page - 1) * normalizedLimit;
+  const sortBy = filters.sortBy || "newest";
+  const sortConfig = {
+    newest: { sortColumn: "q.created_at", sortOrder: "DESC" },
+    oldest: { sortColumn: "q.created_at", sortOrder: "ASC" },
+    "most-answered": { sortColumn: "answerCount", sortOrder: "DESC" },
+  };
+  const { sortColumn, sortOrder } = sortConfig[sortBy] || sortConfig.newest;
   const { whereClause, params } = buildQuestionFilters(filters);
+  const countSql = `
+        SELECT COUNT(*) AS totalCount
+        FROM (
+            SELECT q.question_id
+            FROM questions q
+            JOIN users u ON u.user_id = q.user_id
+            LEFT JOIN answers a ON a.question_id = q.question_id
+            ${whereClause}
+            GROUP BY q.question_id
+        ) AS filtered_questions
+    `;
   const listSql = `
         SELECT 
             q.question_id AS id,
@@ -158,10 +178,16 @@ export const getQuestionsService = async (filters) => {
             u.user_id,
             u.first_name,
             u.last_name
-        ORDER BY ${sortColumn} ${sortOrder}
-        LIMIT ${normalizedLimit}
+        ORDER BY ${sortColumn} ${sortOrder}, q.question_id DESC
+        LIMIT ? OFFSET ?
     `;
-  const rows = await safeExecute(listSql, params);
+  const [countRows, rows] = await Promise.all([
+    safeExecute(countSql, params),
+    safeExecute(listSql, [...params, normalizedLimit, offset]),
+  ]);
+  const totalCount = Number(countRows[0]?.totalCount ?? 0);
+  const totalPages =
+    totalCount === 0 ? 0 : Math.ceil(totalCount / normalizedLimit);
 
   return {
     data: rows.map((row) => ({
@@ -179,9 +205,11 @@ export const getQuestionsService = async (filters) => {
       },
     })),
     meta: {
+      page,
       limit: normalizedLimit,
-      total: rows.length,
-      sortBy: "newest",
+      total: totalCount,
+      totalPages,
+      sortBy,
       sortOrder: sortOrder.toLowerCase(),
     },
   };

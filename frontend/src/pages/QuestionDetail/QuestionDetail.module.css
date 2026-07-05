@@ -19,6 +19,22 @@
   transition: color var(--transition-fast);
 }
 
+.backLink:focus-visible,
+.statePanel__action:focus-visible,
+.statePanel__actionSecondary:focus-visible,
+.metaButton:focus-visible,
+.editor__tool:focus-visible,
+.answerActionButton:focus-visible,
+.saveButton:focus-visible,
+.cancelButton:focus-visible,
+.deleteConfirmButton:focus-visible,
+.fitButton:focus-visible,
+.submitButton:focus-visible,
+.relatedCard:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
 .backLink:hover {
   color: var(--primary);
 }
@@ -32,6 +48,13 @@
   min-height: 16rem;
   padding: var(--spacing-3xl) var(--spacing-xl);
   text-align: center;
+}
+
+.statePanel__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--spacing-sm);
 }
 
 .statePanel__message {
@@ -62,6 +85,28 @@
   background-color: var(--primary-hover);
 }
 
+.statePanel__actionSecondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.7rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--surface);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  cursor: pointer;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.statePanel__actionSecondary:hover {
+  background-color: var(--surface-hover);
+  border-color: var(--border-hover);
+}
+
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 17rem;
@@ -88,6 +133,7 @@
   align-items: center;
   gap: var(--spacing-md);
   margin-bottom: var(--spacing-lg);
+  flex-wrap: wrap;
 }
 
 .questionCard__avatar {
@@ -212,6 +258,7 @@
   align-items: center;
   gap: var(--spacing-md);
   margin-bottom: var(--spacing-md);
+  flex-wrap: wrap;
 }
 
 .answerActions {
@@ -238,7 +285,11 @@
   gap: 0.5rem;
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.15s ease;
 }
 
 .answerActionButton:hover {
@@ -298,7 +349,10 @@
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   cursor: pointer;
-  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .saveButton {
@@ -455,6 +509,15 @@
 .editor__tool:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.markdownFallback {
+  padding: var(--spacing-md);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-hover);
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
 }
 
 .editor__count {
@@ -642,6 +705,31 @@
 }
 
 @media (max-width: 640px) {
+  .page {
+    gap: var(--spacing-md);
+  }
+
+  .questionCard,
+  .formSection,
+  .answerCard,
+  .statePanel {
+    padding: var(--spacing-lg);
+  }
+
+  .questionCard__header,
+  .answerCard__header {
+    align-items: flex-start;
+  }
+
+  .editor__toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .editor__tools {
+    flex-wrap: wrap;
+  }
+
   .formFooter {
     flex-direction: column;
     align-items: stretch;
@@ -649,5 +737,20 @@
 
   .submitButton {
     width: 100%;
+  }
+
+  .fitButton,
+  .statePanel__action,
+  .statePanel__actionSecondary,
+  .cancelButton,
+  .saveButton,
+  .deleteConfirmButton {
+    width: 100%;
+  }
+
+  .answerEditActions,
+  .answerDeleteActions,
+  .statePanel__actions {
+    flex-direction: column;
   }
 }

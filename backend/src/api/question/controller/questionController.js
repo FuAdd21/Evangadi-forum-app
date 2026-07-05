@@ -80,6 +80,9 @@ export const getQuestionsController = async (req, res, next) => {
   try {
     const filters = {
       search: req.query.search,
+      page: req.query.page ? Number(req.query.page) : 1,
+      limit: req.query.limit ? Number(req.query.limit) : 10,
+      sortBy: req.query.sortBy || "newest",
       mine: req.query.mine === "true" || req.query.mine === true,
       userId: req.user.id,
     };
@@ -118,16 +121,12 @@ export const updateQuestionController = async (req, res, next) => {
 export const deleteQuestionController = async (req, res, next) => {
   try {
     const { questionHash } = req.params;
-    const data = await deleteQuestionService({
+    await deleteQuestionService({
       questionHash,
       userId: req.user.id,
     });
 
-    res.status(StatusCodes.OK).json({
-      success: true,
-      message: "Question deleted successfully.",
-      data,
-    });
+    res.status(StatusCodes.NO_CONTENT).send();
   } catch (error) {
     next(error);
   }

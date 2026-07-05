@@ -43,7 +43,10 @@ export default function Navbar({ title, subtitle, user, onLogout }) {
     }, 500);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, navigate, location.pathname]);
+  }, [searchTerm, navigate, location.pathname, location.search]);
+
+  const avatarName =
+    [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "User";
 
   const handleSemanticSearch = (e) => {
     e.preventDefault();
@@ -129,7 +132,7 @@ export default function Navbar({ title, subtitle, user, onLogout }) {
                   user?.firstName || "User"
                 }+${user?.lastName || ""}&background=random`
               }
-              alt="avatar"
+              alt={`${avatarName} profile picture`}
               referrerPolicy="no-referrer"
             />
           </div>

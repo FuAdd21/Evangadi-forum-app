@@ -6,25 +6,40 @@
 import { param, query, body } from "express-validator";
 import { validationErrorHandler } from "../../../middleware/validation-handler.js";
 
+export const listDocumentsValidation = [
+  query("page")
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage("page must be a positive integer")
+    .toInt(),
+  query("limit")
+    .optional()
+    .isInt({ min: 1, max: 100 })
+    .withMessage("limit must be between 1 and 100")
+    .toInt(),
+  query("sortBy")
+    .optional()
+    .isIn(["newest", "oldest"])
+    .withMessage("sortBy must be one of newest, oldest"),
+  validationErrorHandler,
+];
 
 export const searchDocumentValidation = [
-  // Validate documentId
-  param("documentId")
-    .isInt()
-    .withMessage("documentId must be an integer"),
-  // Validate search query
-  query("query")
-    .trim()
-    .notEmpty()
-    .withMessage("query is required")
-    .isString()
-    .withMessage("query must be a string"),
-  // Validate k
-  query("k")
-    .optional()
-    .isInt({ min: 1, max: 5 })
-    .withMessage("k must be a number between 1 and 5"),
-  validationErrorHandler,
+  // Validate documentId
+  param("documentId")
+    .isInt({ min: 1 })
+    .withMessage("documentId must be an integer"), // Validate search query
+  query("query")
+    .trim()
+    .notEmpty()
+    .withMessage("query is required")
+    .isString()
+    .withMessage("query must be a string"), // Validate k
+  query("k")
+    .optional()
+    .isInt({ min: 1, max: 5 })
+    .withMessage("k must be a number between 1 and 5"),
+  validationErrorHandler,
 ];
 
 export const documentIdParamValidation = [
@@ -35,7 +50,6 @@ export const documentIdParamValidation = [
     .withMessage("documentId must be a positive integer"),
   validationErrorHandler,
 ];
-
 
 export const documentIdValidation = documentIdParamValidation;
 

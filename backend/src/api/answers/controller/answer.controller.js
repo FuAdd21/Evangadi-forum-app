@@ -1,11 +1,11 @@
-import { StatusCodes } from 'http-status-codes';
+import { StatusCodes } from "http-status-codes";
 import {
   createAnswerService,
   deleteAnswerService,
   getAnswersService,
   getSingleAnswerService,
   updateAnswerService,
-} from '../service/answer.service.js';
+} from "../service/answer.service.js";
 
 /**
  * Handles creating a new answer.
@@ -21,7 +21,7 @@ export const createAnswerController = async (req, res, next) => {
 
     res.status(StatusCodes.CREATED).json({
       success: true,
-      message: 'Answer posted successfully.',
+      message: "Answer posted successfully.",
       data: answer,
     });
   } catch (error) {
@@ -34,12 +34,18 @@ export const createAnswerController = async (req, res, next) => {
  */
 export const getAnswersController = async (req, res, next) => {
   try {
-    const { questionId, sortBy } = req.query;
-    const answers = await getAnswersService({ questionId, sortBy });
+    const { questionId, sortBy, page, limit } = req.query;
+    const answers = await getAnswersService({
+      questionId,
+      sortBy,
+      page,
+      limit,
+    });
 
     res.status(StatusCodes.OK).json({
       success: true,
-      data: answers,
+      message: "Answers retrieved successfully.",
+      ...answers,
     });
   } catch (error) {
     next(error);
@@ -78,7 +84,7 @@ export const updateAnswerController = async (req, res, next) => {
 
     res.status(StatusCodes.OK).json({
       success: true,
-      message: 'Answer updated successfully.',
+      message: "Answer updated successfully.",
       data: updatedAnswer,
     });
   } catch (error) {
@@ -92,16 +98,12 @@ export const updateAnswerController = async (req, res, next) => {
 export const deleteAnswerController = async (req, res, next) => {
   try {
     const { answerId } = req.params;
-    const deletedResult = await deleteAnswerService({
+    await deleteAnswerService({
       answerId,
       userId: req.user.id,
     });
 
-    res.status(StatusCodes.OK).json({
-      success: true,
-      message: 'Answer deleted successfully.',
-      data: deletedResult,
-    });
+    res.status(StatusCodes.NO_CONTENT).send();
   } catch (error) {
     next(error);
   }

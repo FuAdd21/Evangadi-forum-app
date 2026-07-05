@@ -168,16 +168,13 @@ async function updateDocumentStatus({
   await safeExecute(sql, [status, errorMessage, documentId]);
 }
 
-export const assertOwnedDocument = async ({
-  documentId,
-  userId,
-}) => {
+export const assertOwnedDocument = async ({ documentId, userId }) => {
   const rows = await safeExecute(
     `SELECT document_id, title, mime_type, storage_path
      FROM documents
      WHERE document_id = ? AND user_id = ?
      LIMIT 1`,
-    [documentId, userId]
+    [documentId, userId],
   );
 
   if (rows.length === 0) {
@@ -186,8 +183,6 @@ export const assertOwnedDocument = async ({
 
   return rows[0];
 };
-
-
 
 //
 // export const assertOwnedDocument = async (documentId, userId) => {
@@ -539,7 +534,19 @@ export async function searchInDocumentService({
  * Queries the documents table for a specific user,
  * ordered by latest upload, and maps the output.
  */
-export async function listDocumentsForUserService(userId) {
+export async function listDocumentsForUserService({
+  userId,
+  page = 1,
+  limit = 10,
+  sortBy = "newest",
+}) {
+  const pageNumber = Number.isInteger(page) && page > 0 ? page : 1;
+  const pageSize = Number.isInteger(limit)
+    ? Math.min(Math.max(limit, 1), 100)
+    : 10;
+  const offset = (pageNumber - 1) * pageSize;
+  const sortOrder = sortBy === "oldest" ? "ASC" : "DESC";
+
   const sql = `
     SELECT 
       document_id,
@@ -554,11 +561,35 @@ export async function listDocumentsForUserService(userId) {
       updated_at
     FROM documents
     WHERE user_id = ?
-    ORDER BY created_at DESC
+    ORDER BY created_at ${sortOrder}, document_id DESC
+    LIMIT ? OFFSET ?
   `;
 
-  const rows = await safeExecute(sql, [userId]);
-  return rows.map((row) => mapDocumentToResponse(row));
+  const countSql = `
+    SELECT COUNT(*) AS totalCount
+    FROM documents
+    WHERE user_id = ?
+  `;
+
+  const [countRows, rows] = await Promise.all([
+    safeExecute(countSql, [userId]),
+    safeExecute(sql, [userId, pageSize, offset]),
+  ]);
+
+  const totalCount = Number(countRows[0]?.totalCount ?? 0);
+  const totalPages = totalCount === 0 ? 0 : Math.ceil(totalCount / pageSize);
+
+  return {
+    data: rows.map((row) => mapDocumentToResponse(row)),
+    meta: {
+      page: pageNumber,
+      limit: pageSize,
+      total: totalCount,
+      totalPages,
+      sortBy,
+      sortOrder: sortOrder.toLowerCase(),
+    },
+  };
 }
 
 export async function answerFromRagChunksService({ query, chunks }) {
@@ -600,11 +631,7 @@ export async function answerFromRagChunksService({ query, chunks }) {
   }
 }
 
-export async function queryDocumentService({
-  userId,
-  documentId,
-  query,
-}) {
+export async function queryDocumentService({ userId, documentId, query }) {
   const searchResult = await searchInDocumentService({
     userId,
     documentId,
@@ -643,9 +670,6 @@ export async function queryDocumentService({
     chunksUsed: chunks.map((chunk) => chunk.chunkId),
   };
 }
-
-
-
 
 // export async function queryDocumentService({ userId, documentId, query }) {
 //   const searchResult = await searchInDocumentService({

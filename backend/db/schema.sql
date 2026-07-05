@@ -43,6 +43,7 @@ CREATE TABLE `questions` (
     FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
     
     INDEX `idx_questions_user_id` (`user_id`),
+    INDEX `idx_questions_user_created` (`user_id`, `created_at`),
     INDEX `idx_questions_created_at` (`created_at`),
     
     -- Full-text search index for exact match search mode
@@ -83,6 +84,7 @@ CREATE TABLE `answers` (
     FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE CASCADE,
     
     INDEX `idx_answers_question_id` (`question_id`),
+    INDEX `idx_answers_question_created` (`question_id`, `created_at`),
     INDEX `idx_answers_user_id` (`user_id`),
     INDEX `idx_answers_created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -135,8 +137,7 @@ CREATE TABLE `document_chunk_vectors` (
 
 SET FOREIGN_KEY_CHECKS = 1;
 
-<<<<<<< Updated upstream
-- -----------------------------------------------------------------------------
+-- -----------------------------------------------------------------------------
 -- 6. Chatbot: Evangadi knowledge base chunks and embeddings
 -- -----------------------------------------------------------------------------
 DROP TABLE IF EXISTS `chatbot_chunks`;
@@ -148,7 +149,3 @@ CREATE TABLE `chatbot_chunks` (
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY `uniq_chatbot_chunks_index` (`chunk_index`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-SET FOREIGN_KEY_CHECKS = 1;
-=======
->>>>>>> Stashed changes

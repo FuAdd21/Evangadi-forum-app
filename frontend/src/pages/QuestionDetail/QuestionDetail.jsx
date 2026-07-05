@@ -3,7 +3,15 @@
  * Route: `/question/:questionHash`
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  Suspense,
+  lazy,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -18,11 +26,14 @@ import {
   Trash2,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext.jsx";
-import RagAnswerBody from "../../components/RagAnswerBody/RagAnswerBody.jsx";
 import { answerService } from "../../services/answer/answer.service.js";
 import { questionService } from "../../services/question/question.service.js";
 import { isAuthoredByUser } from "../../lib/utils.js";
 import styles from "./QuestionDetail.module.css";
+
+const RagAnswerBody = lazy(
+  () => import("../../components/RagAnswerBody/RagAnswerBody.jsx"),
+);
 
 const ANSWER_MIN = 20;
 
@@ -83,6 +94,7 @@ export default function QuestionDetail() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const answerRef = useRef(null);
+  const loadRequestIdRef = useRef(0);
 
   const [question, setQuestion] = useState(null);
   const [answers, setAnswers] = useState([]);
@@ -105,12 +117,28 @@ export default function QuestionDetail() {
   const [isAnswerUpdating, setIsAnswerUpdating] = useState(false);
   const [isAnswerDeleting, setIsAnswerDeleting] = useState(false);
 
-  const isOwnQuestion = question && isAuthoredByUser(question, user);
+  const isOwnQuestion = useMemo(
+    () => Boolean(question && isAuthoredByUser(question, user)),
+    [question, user],
+  );
   const isBusy =
     isSubmitting || isCheckingFit || isAnswerUpdating || isAnswerDeleting;
   const answerLength = answerText.length;
+  const answerCount = useMemo(
+    () => question?.answerCount ?? answers.length,
+    [question?.answerCount, answers.length],
+  );
+  const questionAuthorLabel = useMemo(
+    () => getAuthorLabel(question?.author, user),
+    [question?.author, user],
+  );
+  const questionAvatarUrl = useMemo(
+    () => getAvatarUrl(question?.author),
+    [question?.author],
+  );
 
   const loadQuestion = useCallback(async () => {
+    const requestId = ++loadRequestIdRef.current;
     setIsLoading(true);
     setLoadError(null);
 
@@ -120,24 +148,53 @@ export default function QuestionDetail() {
         questionService.getSimilarQuestions(questionHash),
       ]);
 
+      if (loadRequestIdRef.current !== requestId) return;
+
       setQuestion(detail.question);
       setAnswers(detail.answers ?? []);
       setRelatedQuestions(similar);
     } catch {
+      if (loadRequestIdRef.current !== requestId) return;
       setLoadError("Failed to load question details.");
       setQuestion(null);
       setAnswers([]);
       setRelatedQuestions([]);
     } finally {
-      setIsLoading(false);
+      if (loadRequestIdRef.current === requestId) {
+        setIsLoading(false);
+      }
     }
   }, [questionHash]);
 
   useEffect(() => {
     loadQuestion();
+    return () => {
+      loadRequestIdRef.current += 1;
+    };
   }, [loadQuestion]);
 
-  const applyMarkdown = (format) => {
+  const handleRetryLoad = useCallback(() => {
+    loadQuestion();
+  }, [loadQuestion]);
+
+  const handleNavigateBack = useCallback(() => {
+    navigate("/dashboard");
+  }, [navigate]);
+
+  const handleShare = useCallback(async () => {
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: question?.title, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+      }
+    } catch {
+      /* user cancelled or clipboard denied */
+    }
+  }, [question?.title]);
+
+  const applyMarkdown = useCallback((format) => {
     const textarea = answerRef.current;
     if (!textarea) return;
 
@@ -163,22 +220,9 @@ export default function QuestionDetail() {
       textarea.focus();
       textarea.setSelectionRange(selectionStart, selectionEnd);
     });
-  };
+  }, []);
 
-  const handleShare = async () => {
-    const url = window.location.href;
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: question?.title, url });
-      } else {
-        await navigator.clipboard.writeText(url);
-      }
-    } catch {
-      /* user cancelled or clipboard denied */
-    }
-  };
-
-  const handleCheckFit = async () => {
+  const handleCheckFit = useCallback(async () => {
     const trimmed = answerText.trim();
 
     if (trimmed.length < ANSWER_MIN) {
@@ -202,63 +246,68 @@ export default function QuestionDetail() {
     } finally {
       setIsCheckingFit(false);
     }
-  };
+  }, [answerText, questionHash]);
 
-  const startAnswerEdit = (answer) => {
+  const startAnswerEdit = useCallback((answer) => {
     setEditingAnswerId(answer.id);
     setEditedAnswerText(answer.content);
     setPendingDeleteAnswerId(null);
     setAnswerActionError(null);
-  };
+  }, []);
 
-  const cancelAnswerEdit = () => {
+  const cancelAnswerEdit = useCallback(() => {
     setEditingAnswerId(null);
     setEditedAnswerText("");
     setAnswerActionError(null);
-  };
+  }, []);
 
-  const startAnswerDelete = (answer) => {
+  const startAnswerDelete = useCallback((answer) => {
     setPendingDeleteAnswerId(answer.id);
     setEditingAnswerId(null);
     setEditedAnswerText("");
     setAnswerActionError(null);
-  };
+  }, []);
 
-  const cancelAnswerDelete = () => {
+  const cancelAnswerDelete = useCallback(() => {
     setPendingDeleteAnswerId(null);
     setAnswerActionError(null);
-  };
+  }, []);
 
-  const handleSaveAnswerEdit = async (event) => {
-    event.preventDefault();
-    if (!editingAnswerId) return;
+  const handleSaveAnswerEdit = useCallback(
+    async (event) => {
+      event.preventDefault();
+      if (!editingAnswerId) return;
 
-    const trimmed = editedAnswerText.trim();
-    if (trimmed.length < ANSWER_MIN) {
-      setAnswerActionError(`Answer must be at least ${ANSWER_MIN} characters.`);
-      return;
-    }
+      const trimmed = editedAnswerText.trim();
+      if (trimmed.length < ANSWER_MIN) {
+        setAnswerActionError(
+          `Answer must be at least ${ANSWER_MIN} characters.`,
+        );
+        return;
+      }
 
-    setIsAnswerUpdating(true);
-    setAnswerActionError(null);
+      setIsAnswerUpdating(true);
+      setAnswerActionError(null);
 
-    try {
-      const updated = await answerService.updateAnswer(
-        editingAnswerId,
-        trimmed,
-      );
-      setAnswers((prev) =>
-        prev.map((answer) => (answer.id === updated.id ? updated : answer)),
-      );
-      cancelAnswerEdit();
-    } catch (err) {
-      setAnswerActionError(err.message || "Failed to update answer.");
-    } finally {
-      setIsAnswerUpdating(false);
-    }
-  };
+      try {
+        const updated = await answerService.updateAnswer(
+          editingAnswerId,
+          trimmed,
+        );
+        setAnswers((prev) =>
+          prev.map((answer) => (answer.id === updated.id ? updated : answer)),
+        );
+        cancelAnswerEdit();
+      } catch (err) {
+        setAnswerActionError(err.message || "Failed to update answer.");
+      } finally {
+        setIsAnswerUpdating(false);
+      }
+    },
+    [cancelAnswerEdit, editedAnswerText, editingAnswerId],
+  );
 
-  const handleConfirmAnswerDelete = async () => {
+  const handleConfirmAnswerDelete = useCallback(async () => {
     if (!pendingDeleteAnswerId) return;
 
     setIsAnswerDeleting(true);
@@ -273,10 +322,7 @@ export default function QuestionDetail() {
         prev
           ? {
               ...prev,
-              answerCount: Math.max(
-                (prev.answerCount ?? answers.length) - 1,
-                0,
-              ),
+              answerCount: Math.max((prev.answerCount ?? 1) - 1, 0),
             }
           : prev,
       );
@@ -286,43 +332,56 @@ export default function QuestionDetail() {
     } finally {
       setIsAnswerDeleting(false);
     }
-  };
+  }, [cancelAnswerDelete, pendingDeleteAnswerId]);
 
-  const handleSubmitAnswer = async (event) => {
-    event.preventDefault();
+  const handleSubmitAnswer = useCallback(
+    async (event) => {
+      event.preventDefault();
 
-    const trimmed = answerText.trim();
-    if (trimmed.length < ANSWER_MIN) {
-      setSubmitError(`You need at least ${ANSWER_MIN} characters.`);
-      return;
-    }
+      const trimmed = answerText.trim();
+      if (trimmed.length < ANSWER_MIN) {
+        setSubmitError(`You need at least ${ANSWER_MIN} characters.`);
+        return;
+      }
 
-    setIsSubmitting(true);
-    setSubmitError(null);
+      setIsSubmitting(true);
+      setSubmitError(null);
 
-    try {
-      const newAnswer = await answerService.postAnswer(question.id, trimmed);
-      setAnswers((prev) => [...prev, newAnswer]);
-      setQuestion((prev) =>
-        prev
-          ? {
-              ...prev,
-              answerCount: (prev.answerCount ?? answers.length) + 1,
-            }
-          : prev,
-      );
-      setAnswerText("");
-      setFitResult(null);
-    } catch {
-      setSubmitError("Failed to post answer. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+      try {
+        const newAnswer = await answerService.postAnswer(question.id, trimmed);
+        setAnswers((prev) => [...prev, newAnswer]);
+        setQuestion((prev) =>
+          prev
+            ? {
+                ...prev,
+                answerCount: (prev.answerCount ?? 0) + 1,
+              }
+            : prev,
+        );
+        setAnswerText("");
+        setFitResult(null);
+      } catch {
+        setSubmitError("Failed to post answer. Please try again.");
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [answerText, question?.id],
+  );
+
+  const answerBodyFallback = useMemo(
+    () => <div className={styles.markdownFallback}>Rendering content…</div>,
+    [],
+  );
 
   if (isLoading) {
     return (
-      <div className={styles.statePanel}>
+      <div
+        className={styles.statePanel}
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+      >
         <p className={styles.statePanel__message}>
           Loading question details...
         </p>
@@ -332,32 +391,38 @@ export default function QuestionDetail() {
 
   if (loadError || !question) {
     return (
-      <div className={styles.statePanel}>
+      <div className={styles.statePanel} role="alert" aria-live="assertive">
         <p
           className={`${styles.statePanel__message} ${styles["statePanel__message--error"]}`}
-          role="alert"
         >
           {loadError || "Failed to load question details."}
         </p>
-        <button
-          type="button"
-          className={styles.statePanel__action}
-          onClick={() => navigate("/dashboard")}
-        >
-          Return to Dashboard
-        </button>
+        <div className={styles.statePanel__actions}>
+          <button
+            type="button"
+            className={styles.statePanel__action}
+            onClick={handleRetryLoad}
+          >
+            Retry
+          </button>
+          <button
+            type="button"
+            className={styles.statePanel__actionSecondary}
+            onClick={handleNavigateBack}
+          >
+            Return to Dashboard
+          </button>
+        </div>
       </div>
     );
   }
-
-  const answerCount = question.answerCount ?? answers.length;
 
   return (
     <div className={styles.page}>
       <button
         type="button"
         className={styles.backLink}
-        onClick={() => navigate("/dashboard")}
+        onClick={handleNavigateBack}
       >
         <ArrowLeft size={16} aria-hidden />
         Back to feed
@@ -369,14 +434,16 @@ export default function QuestionDetail() {
             <header className={styles.questionCard__header}>
               <div className={styles.questionCard__avatar}>
                 <img
-                  src={getAvatarUrl(question.author)}
-                  alt={getAuthorLabel(question.author, user)}
+                  src={questionAvatarUrl}
+                  alt={questionAuthorLabel}
                   referrerPolicy="no-referrer"
+                  loading="lazy"
+                  decoding="async"
                 />
               </div>
               <div>
                 <div className={styles.questionCard__author}>
-                  {getAuthorLabel(question.author, user)}
+                  {questionAuthorLabel}
                 </div>
                 <div className={styles.questionCard__date}>
                   Posted {formatPostedDate(question.createdAt)}
@@ -387,7 +454,9 @@ export default function QuestionDetail() {
             <h1 className={styles.questionCard__title}>{question.title}</h1>
 
             <div className={styles.questionCard__body}>
-              <RagAnswerBody>{question.content}</RagAnswerBody>
+              <Suspense fallback={answerBodyFallback}>
+                <RagAnswerBody>{question.content}</RagAnswerBody>
+              </Suspense>
             </div>
 
             <div className={styles.questionCard__actions}>
@@ -451,6 +520,8 @@ export default function QuestionDetail() {
                             src={getAvatarUrl(answer.author)}
                             alt={getAuthorLabel(answer.author, user)}
                             referrerPolicy="no-referrer"
+                            loading="lazy"
+                            decoding="async"
                           />
                         </div>
                         <div>
@@ -497,7 +568,9 @@ export default function QuestionDetail() {
                         </form>
                       ) : (
                         <>
-                          <RagAnswerBody>{answer.content}</RagAnswerBody>
+                          <Suspense fallback={answerBodyFallback}>
+                            <RagAnswerBody>{answer.content}</RagAnswerBody>
+                          </Suspense>
                           {isOwnAnswer && (
                             <div className={styles.answerActions}>
                               <button
@@ -636,6 +709,7 @@ export default function QuestionDetail() {
                     }}
                     placeholder="Type your answer here... You can use Markdown to format your code!"
                     disabled={isBusy}
+                    aria-describedby="answer-editor-hint"
                   />
                 </div>
 
@@ -649,7 +723,7 @@ export default function QuestionDetail() {
                     <Sparkles size={16} aria-hidden />
                     {isCheckingFit ? "Checking..." : "Check draft fit"}
                   </button>
-                  <span className={styles.formHint}>
+                  <span id="answer-editor-hint" className={styles.formHint}>
                     Relevance only. Not grading correctness. You need at least{" "}
                     {ANSWER_MIN} characters.
                   </span>

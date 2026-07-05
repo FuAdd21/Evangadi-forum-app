@@ -6,7 +6,11 @@ import {
   RAG_UPLOADS_ROOT,
 } from "../../../middleware/rag.upload.js";
 import { getUploadedText } from "../../../utils/errors/ingest-pdf.js";
-import { BadRequestError, NotFoundError } from "../../../utils/errors/index.js";
+import {
+  BadRequestError,
+  NotFoundError,
+  UnauthenticatedError,
+} from "../../../utils/errors/index.js";
 import {
   createDocumentFromUploadService,
   deleteDocumentService,
@@ -51,13 +55,18 @@ export const createDocumentController = async (req, res, next) => {
  */
 export const listDocumentsController = async (req, res, next) => {
   try {
-    const userId = req.user.id; // Get authenticated user id from middleware
-    const data = await listDocumentsForUserService(userId);
+    const userId = req.user.id;
+    const data = await listDocumentsForUserService({
+      userId,
+      page: req.query.page ? Number(req.query.page) : 1,
+      limit: req.query.limit ? Number(req.query.limit) : 10,
+      sortBy: req.query.sortBy || "newest",
+    });
 
     res.status(StatusCodes.OK).json({
       success: true,
       message: "Documents fetched successfully.",
-      data,
+      ...data,
     });
   } catch (error) {
     next(error);
@@ -69,16 +78,12 @@ export const listDocumentsController = async (req, res, next) => {
  */
 export const deleteDocumentController = async (req, res, next) => {
   try {
-    const deletedDocument = await deleteDocumentService({
+    await deleteDocumentService({
       userId: req.user.id,
       documentId: req.params.documentId,
     });
 
-    res.status(StatusCodes.OK).json({
-      success: true,
-      message: "Document deleted successfully.",
-      data: deletedDocument,
-    });
+    res.status(StatusCodes.NO_CONTENT).send();
   } catch (error) {
     next(error);
   }
@@ -111,11 +116,6 @@ export const searchInDocumentController = async (req, res, next) => {
     next(error);
   }
 };
-
-
-
-
-
 
 /**
  * Handles POST /api/rag/documents/:documentId/query
@@ -165,9 +165,7 @@ export const getDocumentFileController = async (req, res, next) => {
     const userId = req.user?.id;
     const documentId = Number(req.params?.documentId);
     if (!userId) {
-      const err = new Error("Unauthorized");
-      err.statusCode = 401;
-      throw err;
+      throw new UnauthenticatedError("Authentication invalid");
     }
     // 1. verify ownership + get document
     const doc = await assertOwnedDocument({ documentId, userId });

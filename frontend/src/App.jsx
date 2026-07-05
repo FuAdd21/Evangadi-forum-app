@@ -3,86 +3,110 @@
  * Add new `<Route>` entries here, then wire navigation in `Sidebar.jsx` and
  * `Layout.jsx` (`getTitle` / `getSubtitle`) so the shell stays in sync.
  */
-import React from "react";
+import { Suspense, lazy } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Layout from "./components/Layout/Layout";
 import ProtectedRoute from "./components/ProtectedRoute/ProtectedRoute";
-import Auth from "./pages/Auth/Auth";
-import Dashboard from "./pages/Dashboard/Dashboard";
-import MyQuestions from "./pages/MyQuestions/MyQuestions";
-import Landing from "./pages/Landing/Landing";
-import PostQuestion from "./pages/PostQuestion/PostQuestion";
-import QuestionDetail from "./pages/QuestionDetail/QuestionDetail";
-import RagDocuments from "./pages/RagDocuments/RagDocuments";
-import Settings from "./pages/Settings/Settings";
+
+const Landing = lazy(() => import("./pages/Landing/Landing"));
+const Auth = lazy(() => import("./pages/Auth/Auth"));
+const Dashboard = lazy(() => import("./pages/Dashboard/Dashboard"));
+const MyQuestions = lazy(() => import("./pages/MyQuestions/MyQuestions"));
+const PostQuestion = lazy(() => import("./pages/PostQuestion/PostQuestion"));
+const QuestionDetail = lazy(
+  () => import("./pages/QuestionDetail/QuestionDetail"),
+);
+const RagDocuments = lazy(() => import("./pages/RagDocuments/RagDocuments"));
+const Settings = lazy(() => import("./pages/Settings/Settings"));
+
+function RouteFallback() {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      style={{
+        minHeight: "40vh",
+        display: "grid",
+        placeItems: "center",
+        padding: "2rem",
+        textAlign: "center",
+        color: "var(--text-secondary)",
+      }}
+    >
+      Loading page…
+    </div>
+  );
+}
 
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <ThemeProvider>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/" element={<Landing />} />
-            <Route path="/auth" element={<Auth />} />
+          <Suspense fallback={<RouteFallback />}>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/" element={<Landing />} />
+              <Route path="/auth" element={<Auth />} />
 
-            {/* Protected routes with Layout */}
-            <Route element={<Layout />}>
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/questions/ask"
-                element={
-                  <ProtectedRoute>
-                    <PostQuestion />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/my-questions"
-                element={
-                  <ProtectedRoute>
-                    <MyQuestions />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/question/:questionHash"
-                element={
-                  <ProtectedRoute>
-                    <QuestionDetail />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/rag-documents"
-                element={
-                  <ProtectedRoute>
-                    <RagDocuments />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/settings"
-                element={
-                  <ProtectedRoute>
-                    <Settings />
-                  </ProtectedRoute>
-                }
-              />
-            </Route>
+              {/* Protected routes with Layout */}
+              <Route element={<Layout />}>
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/questions/ask"
+                  element={
+                    <ProtectedRoute>
+                      <PostQuestion />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/my-questions"
+                  element={
+                    <ProtectedRoute>
+                      <MyQuestions />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/question/:questionHash"
+                  element={
+                    <ProtectedRoute>
+                      <QuestionDetail />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/rag-documents"
+                  element={
+                    <ProtectedRoute>
+                      <RagDocuments />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/settings"
+                  element={
+                    <ProtectedRoute>
+                      <Settings />
+                    </ProtectedRoute>
+                  }
+                />
+              </Route>
 
-            {/* Catch-all redirect */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+              {/* Catch-all redirect */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
         </ThemeProvider>
       </AuthProvider>
     </BrowserRouter>

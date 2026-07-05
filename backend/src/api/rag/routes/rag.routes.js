@@ -12,7 +12,7 @@ import {
   getDocumentFileValidation,
   documentIdValidation,
   searchDocumentValidation,
-  
+  listDocumentsValidation,
 } from "../validation/rag.validation.js";
 
 import {
@@ -23,9 +23,7 @@ import {
   getDocumentMetaController,
   getDocumentFileController,
   searchInDocumentController,
-
 } from "../controller/rag.controller.js";
-
 
 const router = express.Router();
 /**
@@ -47,7 +45,12 @@ router.use(createDocumentMulterErrorHandler);
  * @route GET /api/rag/documents
  * @access Protected
  */
-router.get("/documents", authenticateUser, listDocumentsController);
+router.get(
+  "/documents",
+  authenticateUser,
+  listDocumentsValidation,
+  listDocumentsController,
+);
 
 /**
  * T-23: Semantic Search Route
@@ -91,12 +94,6 @@ router.get(
   documentIdParamValidation,
   validationErrorHandler,
   getDocumentMetaController,
-);
-router.get(
-  "/documents/:documentId/file",
-  authenticateUser,
-  getDocumentFileValidation,
-  getDocumentFileController,
 );
 
 /**

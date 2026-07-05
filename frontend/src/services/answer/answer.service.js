@@ -1,19 +1,19 @@
-import { apiClient } from '../core/api.client.js';
+import { apiClient } from "../core/api.client.js";
 
 function handleAnswerError(error) {
   if (!error.response) {
-    if (error.code === 'ECONNABORTED') {
-      return new Error('Request timed out. Please try again.');
+    if (error.code === "ECONNABORTED") {
+      return new Error("Request timed out. Please try again.");
     }
     return new Error(
-      'Unable to connect to server. Please check your internet connection.',
+      "Unable to connect to server. Please check your internet connection.",
     );
   }
 
   const backendMessage =
     error.response.data?.msg || error.response.data?.message;
 
-  return new Error(backendMessage || 'Failed to process answer request.');
+  return new Error(backendMessage || "Failed to process answer request.");
 }
 
 /**
@@ -24,7 +24,7 @@ function handleAnswerError(error) {
  */
 async function postAnswer(questionId, content) {
   try {
-    const response = await apiClient.post('/api/answers', {
+    const response = await apiClient.post("/api/answers", {
       questionId,
       content,
     });
@@ -58,8 +58,8 @@ async function updateAnswer(answerId, content) {
  */
 async function deleteAnswer(answerId) {
   try {
-    const response = await apiClient.delete(`/api/answers/${answerId}`);
-    return response.data.data;
+    await apiClient.delete(`/api/answers/${answerId}`);
+    return null;
   } catch (error) {
     throw handleAnswerError(error);
   }

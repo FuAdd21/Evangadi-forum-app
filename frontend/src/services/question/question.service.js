@@ -68,8 +68,8 @@ async function updateQuestion(questionHash, { title, content }) {
 
 async function deleteQuestion(questionHash) {
   try {
-    const response = await apiClient.delete(`/api/questions/${questionHash}`);
-    return response.data.data;
+    await apiClient.delete(`/api/questions/${questionHash}`);
+    return null;
   } catch (error) {
     throw handleQuestionError(error);
   }

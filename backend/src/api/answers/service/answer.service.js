@@ -94,9 +94,24 @@ export const getSingleAnswerService = async (answerId) => {
 /**
  * Retrieves all answers aligned with a specialized query parameter filter set.
  */
-export const getAnswersService = async ({ questionId, sortBy }) => {
+export const getAnswersService = async ({
+  questionId,
+  sortBy,
+  page,
+  limit,
+}) => {
   await getQuestionOwner(questionId);
+  const pageNumber = Number.isInteger(page) && page > 0 ? page : 1;
+  const pageSize = Number.isInteger(limit)
+    ? Math.min(Math.max(limit, 1), 100)
+    : 10;
+  const offset = (pageNumber - 1) * pageSize;
   const sortSql = getAnswerSortSql(sortBy);
+  const countSql = `
+    SELECT COUNT(*) AS totalCount
+    FROM answers a
+    WHERE a.question_id = ?
+  `;
   const sql = `
     SELECT
       a.answer_id AS id,
@@ -110,11 +125,29 @@ export const getAnswersService = async ({ questionId, sortBy }) => {
     FROM answers a
     JOIN users u ON u.user_id = a.user_id
     WHERE a.question_id = ?
-    ORDER BY ${sortSql}
+    ORDER BY ${sortSql}, a.answer_id DESC
+    LIMIT ? OFFSET ?
   `;
 
-  const rows = await safeExecute(sql, [questionId]);
-  return rows.map((row) => mapAnswer(row));
+  const [countRows, rows] = await Promise.all([
+    safeExecute(countSql, [questionId]),
+    safeExecute(sql, [questionId, pageSize, offset]),
+  ]);
+
+  const totalCount = Number(countRows[0]?.totalCount ?? 0);
+  const totalPages = totalCount === 0 ? 0 : Math.ceil(totalCount / pageSize);
+
+  return {
+    data: rows.map((row) => mapAnswer(row)),
+    meta: {
+      page: pageNumber,
+      limit: pageSize,
+      total: totalCount,
+      totalPages,
+      sortBy,
+      sortOrder: sortBy === "oldest" ? "asc" : "desc",
+    },
+  };
 };
 
 /**

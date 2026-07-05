@@ -17,21 +17,17 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
+  const fullName =
+    [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "User";
+
   return (
     <aside className={styles.sidebar}>
       <div className={styles.sidebar__header}>
-        <div
+        <button
+          type="button"
           className={styles.sidebar__branding}
           onClick={() => navigate("/")}
           title="Go to Home"
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              navigate("/");
-            }
-          }}
         >
           <div className={styles.sidebar__logo} aria-hidden>
             <MessageSquare className={styles["sidebar__logo-icon"]} size={20} />
@@ -42,7 +38,7 @@ export default function Sidebar() {
               Learn together. Ask with context.
             </p>
           </div>
-        </div>
+        </button>
       </div>
 
       <nav className={styles.sidebar__nav} aria-label="Main navigation">
@@ -96,7 +92,7 @@ export default function Sidebar() {
                     user?.firstName || "User"
                   }+${user?.lastName || ""}&background=random`
                 }
-                alt={`${user?.firstName} ${user?.lastName}`}
+                alt={`${fullName} profile picture`}
                 className={styles["sidebar__avatar-image"]}
                 referrerPolicy="no-referrer"
               />
