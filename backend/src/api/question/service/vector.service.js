@@ -132,13 +132,18 @@ export async function generateQuestionEmbedding(sourceText, options = {}) {
     throw new Error("Source text must be a non-empty string");
   }
 
+  // gemini-embedding-2 does not support the `taskType` config field (the API
+  // call throws if it's present) — only gemini-embedding-001 / text-embedding-004 do.
+  const supportsTaskType = !GEMINI_EMBEDDING_MODEL.includes("gemini-embedding-2");
+
+  const config = supportsTaskType
+    ? { taskType, outputDimensionality: 768 }
+    : { outputDimensionality: 768 };
+
   const result = await ai.models.embedContent({
     model: GEMINI_EMBEDDING_MODEL,
     contents: sourceText,
-    config: {
-      taskType: taskType,
-      outputDimensionality: 768,
-    },
+    config,
   });
 
   let embedding =
